@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#092d38">
+  <meta name="description" content="Segla från din piratbas, bärga vraklast, möt en konvoj och bygg ett varv.">
+  <title>Havsvarg · Det öppna havet</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23092d38'/%3E%3Cpath d='M31 10v36H13l7 10h27l9-10H35V12L53 38H35M29 18L13 40h16' fill='%23eac780'/%3E%3C/svg%3E">
+  <script type="module" crossorigin src="./assets/index-BR-EWOIO.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/performanceConfigurator-UtxC_Odd.js">
+  <link rel="modulepreload" crossorigin href="./assets/engineStore-Bn2tApal.js">
+  <link rel="modulepreload" crossorigin href="./assets/logger-CuBYPcDK.js">
+  <link rel="modulepreload" crossorigin href="./assets/timingTools-B9PzhlQn.js">
+  <link rel="modulepreload" crossorigin href="./assets/shaderStore-D-XQlhUT.js">
+  <link rel="modulepreload" crossorigin href="./assets/internalTexture-B3djGrls.js">
+  <link rel="modulepreload" crossorigin href="./assets/thinEngine.pure-XQPYvTuU.js">
+  <link rel="modulepreload" crossorigin href="./assets/math.scalar.functions-BUpXP_7j.js">
+  <link rel="modulepreload" crossorigin href="./assets/halfFloat-Cfx5m4ll.js">
+  <link rel="modulepreload" crossorigin href="./assets/math.color.pure-Db2vHFy1.js">
+  <link rel="modulepreload" crossorigin href="./assets/tools.pure-CzAsNFvg.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-cpBoPSE1.css">
+</head>
+<body>
+  <canvas id="sea" tabindex="-1" aria-label="Spelplan: piratskeppet Havsvargen i Skärviken"></canvas>
+  <canvas id="overlay" aria-hidden="true"></canvas>
+  <header>
+    <div class="brand"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3v27M20 6L34 25H23M17 12L6 25h11M5 30h31l-5 7H11z"/></svg><div>HAVSVARG<span>DET ÖPPNA HAVET</span></div></div>
+    <nav aria-label="Spelinställningar">
+      <button id="touch-toggle" class="icon-button" aria-pressed="false" title="Visa touchkontroller">Touch</button>
+      <button id="sound-toggle" class="icon-button" aria-pressed="false">Ljud av</button>
+      <button id="tuning-toggle" class="icon-button" aria-expanded="false">Trimma</button>
+      <button id="fullscreen-toggle" class="icon-button" aria-pressed="false" aria-label="Öppna helskärm" title="Helskärm och liggande läge">⛶</button>
+      <button id="pause" class="icon-button" aria-label="Pausa spelet">Ⅱ</button>
+    </nav>
+  </header>
+  <main id="hud" class="hidden">
+    <section class="ship-status glass" aria-label="Ditt skepp">
+      <div class="eyebrow" id="ship-type-eyebrow">DIN BRIGG</div><div class="ship-name">Havsvargen <span id="hp-value">180 / 180</span></div>
+      <div class="health-track"><div id="health"></div></div>
+      <div class="status-foot"><span id="speed">0 knop</span><span id="sails">Segel 0 %</span></div>
+      <div class="cargo-row"><span>Ombord <b id="cargo">0</b></span><span>Förnödenheter <b id="stores">0</b></span></div>
+      <div class="fleet-hud"><span title="Dubloner">◈ <b id="doubloons">250</b></span><span title="Besättning">Bes. <b id="crew-count">24</b></span><span id="captain-level" title="Din kaptens nivå">Nivå 1</span><span id="crew-warning" class="hidden">För få sjömän</span><span id="brig-status" class="hidden" title="Fångar i briggen">Fångar <b id="brig-count">0</b></span></div>
+      <div id="passenger" class="hidden">Mira Storm är ombord</div>
+    </section>
+    <div class="objective"><span class="eyebrow">FRITT HAV · EGEN HAMN</span><span id="objective">Lämna viken och leta efter vraklast.</span>
+      <div class="navigation" aria-label="Visa riktningen till">
+        <button data-destination="home">⌂ Hem</button><button data-destination="wreck">◇ Vrak</button><button data-destination="convoy">⚑ Konvoj</button>
+        <select id="port-destination" aria-label="Välj hamn eller ledig basplats"><option value="">⚓ Platser</option></select>
+      </div>
+    </div>
+    <div id="toast" role="status"></div>
+    <div id="story" class="hidden" role="status" aria-live="polite"><canvas width="56" height="56"></canvas><div><b></b><p></p><div class="story-choices"></div></div></div>
+    <div class="batteries" aria-label="Bredsidor">
+      <div class="battery"><span>BABORD</span><div class="reload-track"><i id="left-reload"></i></div><b id="left-ready">Redo</b></div>
+      <div class="battery-emblem" aria-hidden="true">✦</div>
+      <div class="battery"><span>STYRBORD</span><div class="reload-track"><i id="right-reload"></i></div><b id="right-ready">Redo</b></div>
+    </div>
+    <div class="desktop-hint"><kbd>A</kbd><kbd>D</kbd> styr &nbsp; Håll <kbd>W</kbd>/<kbd>S</kbd> öka/bromsa · släpp för att sakta in &nbsp; Mus sikta · klicka skjut</div>
+    <div id="aim-caption"></div>
+    <div id="interaction-actions">
+      <div class="action-buttons" role="group" aria-label="Handlingar i närheten"><button id="interact" class="gold-button hidden"></button><button id="secondary-action" class="gold-button hidden"></button></div>
+      <span id="interaction-hint"></span>
+    </div>
+    <div class="touch-controls">
+      <div class="stick-wrap steer-wrap"><div id="steer-stick" class="stick" role="group" aria-label="Styr kurs och fart med vänster tumme. Längre från mitten ger mer fart. Släpp för att bromsa."><div class="stick-axis"></div><div class="knob"></div></div><span>KURS & FART</span></div>
+      <div class="direct-aim-hint">HÅLL PÅ VATTNET<span>Dra siktet · släpp för eld</span></div>
+      <div id="aim-cancel" class="hidden" aria-hidden="true"><b>×</b><span>Dra hit för att avbryta</span></div>
+    </div>
+    <div id="portrait-hint">Vrid mobilen för mer plats. ⛶ öppnar helskärm.</div>
+  </main>
+  <aside id="tuning" class="glass hidden" aria-label="Justera skeppskänslan">
+    <div class="panel-heading">Skeppskänsla <button id="close-tuning" aria-label="Stäng inställningar">×</button></div>
+    <label for="turn-rate">Svänghastighet <output id="turn-value">0,9</output></label>
+    <input id="turn-rate" type="range" min="0.4" max="1.7" step="0.1" value="0.9">
+    <label for="top-speed">Toppfart <output id="speed-value">16</output></label>
+    <input id="top-speed" type="range" min="8" max="24" step="1" value="16">
+    <label for="reload-time">Omladdning <output id="reload-value">3,8 s</output></label>
+    <input id="reload-time" type="range" min="1.8" max="6" step="0.2" value="3.8">
+    <button id="restore-tuning">Återställ känslan</button>
+  </aside>
+  <dialog id="welcome" aria-labelledby="welcome-title">
+    <div class="eyebrow" id="scenario-mode">DIN FÄRD</div>
+    <h1 id="welcome-title">Havet väntar.</h1>
+    <div class="scenario-picker"><label for="scenario-select">Välj en färd</label>
+      <select id="scenario-select"></select><p id="scenario-description"></p></div>
+    <div class="start-actions">
+      <button id="continue" class="gold-button hidden">Fortsätt färden →</button>
+      <label class="world-size" for="language">Language · Språk <select id="language"></select></label>
+      <label class="world-size" for="world-size">Havets storlek
+        <select id="world-size"><option value="small">Litet · cirka en minut över</option><option value="normal" selected>Normalt · cirka två minuter över</option><option value="large">Stort · cirka fyra minuter över</option><option value="huge">Gigantiskt · cirka sex minuter över · start cirka 25 s</option><option value="enormous">Enormt · cirka elva minuter över · start cirka 15 s</option></select></label>
+      <button id="start" class="gold-button">Börja från början →</button>
+      <button id="start-fullscreen" class="text-button">⛶ Börja från början i helskärm</button>
+    </div>
+    <div class="welcome-controls"><b>Segla · Bärga · Bygg</b><span>Håll W för fart, A/D styr. Släpp för att glida.<br>På mobil: vänster tumme styr; håll på vattnet och släpp för att skjuta.</span></div>
+    <div class="fineprint" id="welcome-save-status" role="status"></div>
+  </dialog>
+  <dialog id="replace-save" class="center-dialog">
+    <p id="replace-status" role="status"></p>
+    <h2>Börja en ny färd?</h2><p>Den sparade färden i det valda läget ersätts. Andra lägen behåller sina sparningar.</p>
+    <button id="replace-confirm" class="gold-button">Ersätt och börja →</button>
+    <button id="replace-cancel" class="text-button">Behåll min sparning</button>
+  </dialog>
+  <dialog id="harbour" aria-labelledby="harbour-title">
+    <div id="harbour-kind" class="eyebrow">DIN PIRATBAS · TIDEN GÅR</div>
+    <h2 id="harbour-title">Korpviken</h2>
+    <p id="harbour-arrival">Havsvargen ligger klar vid bryggan. Hitta last och gör viken till din.</p>
+    <div class="harbour-resources">
+      <div class="harbour-balance"><span id="harbour-stock-label">Förnödenheter</span><strong id="harbour-stock">0</strong></div>
+      <div class="harbour-balance"><span>Dubloner</span><strong id="harbour-gold">250</strong></div>
+    </div>
+    <div class="harbour-tabs" role="tablist" aria-label="Sköt din piratbas">
+      <button id="tab-base" role="tab" aria-selected="true" aria-controls="panel-base" data-harbour-tab="base">Bas</button>
+      <button id="tab-fleet" role="tab" aria-selected="false" aria-controls="panel-fleet" data-harbour-tab="fleet" tabindex="-1">Flotta</button>
+      <button id="tab-captains" role="tab" aria-selected="false" aria-controls="panel-captains" data-harbour-tab="captains" tabindex="-1">Kaptener</button>
+      <button id="tab-trade" role="tab" aria-selected="false" aria-controls="panel-trade" data-harbour-tab="trade" tabindex="-1">Handel</button>
+      <button id="tab-nations" role="tab" aria-selected="false" aria-controls="panel-nations" data-harbour-tab="nations" tabindex="-1">Nationer</button>
+      <button id="tab-rivals" role="tab" aria-selected="false" aria-controls="panel-rivals" data-harbour-tab="rivals" tabindex="-1">Rivaler</button>
+    </div>
+    <section id="panel-base" class="harbour-panel" role="tabpanel" aria-labelledby="tab-base">
+    <section class="build-card" aria-labelledby="shipyard-title">
+      <span class="eyebrow" id="shipyard-state">EN LEDIG BYGGPLATS</span>
+      <h3 id="shipyard-title">Ett litet skeppsvarv</h3>
+      <p id="shipyard-benefit">Ombyggda kanonlavetter ingår: 25 % kortare omladdning på nästa färd.</p>
+      <button id="build-shipyard" class="gold-button">Bygg varv · 120 förråd + 100 ◈</button>
+      <span id="build-hint">Varvet behöver förnödenheter och dubloner.</span>
+    </section>
+    <div class="base-upgrades">
+      <button id="build-tavern">Bygg bar · 100 ◈</button>
+      <button id="upgrade-docks">Fler båtplatser · 100 ◈</button>
+      <button id="upgrade-repairs">Fler reparationsplatser · 150 ◈</button>
+      <button id="build-ship" data-build-type="slup">Bygg slup · 250 ◈</button>
+      <button id="build-brigantin" data-build-type="brigantin">Bygg brigantin · 450 ◈</button>
+      <button id="build-brigg" data-build-type="brigg">Bygg brigg · 700 ◈</button>
+      <button id="build-korvett" data-build-type="korvett">Bygg korvett · 1100 ◈</button>
+      <button id="build-fregatt" data-build-type="fregatt">Bygg fregatt · 2000 ◈</button>
+    </div>
+    <section class="fort-card" aria-labelledby="fort-title">
+      <div><h3 id="fort-title">Basens fort</h3><span id="fort-state">Inget fort</span></div>
+      <p id="fort-description" class="management-note">Kanonerna försvarar hamnen mot plundrare.</p>
+      <button id="build-fort">Bygg fort · 180 ◈ + 20 timmer</button>
+    </section>
+    <p id="base-capacity" class="management-note"></p>
+    <p id="base-morale" class="management-note"></p>
+    <div id="place-buttons" class="place-buttons"><span>Flytta:</span> <button data-place="tavern">Krogen</button> <button data-place="fort">Fortet</button> <button data-place="yard">Varvet</button></div>
+    <div class="contact-card"><b id="contact-name">En tom stol vid bordet</b><span id="contact-history">Det kan finnas någon att rädda ute vid vraket.</span></div>
+    </section>
+    <section id="panel-fleet" class="harbour-panel hidden" role="tabpanel" aria-labelledby="tab-fleet">
+        <p class="management-note">Varje skepp hör till en hemhamn. Bemanning och utrustning kräver att skeppet är på plats; order kan skickas på distans. Full kaj betyder utsatt ankring utanför.</p>
+      <div class="fleet-toolbar"><span id="fleet-equipment"></span><button id="recruit-crew">Fyll på besättning</button></div>
+      <div id="fleet-list" class="management-list"></div>
+    </section>
+    <section id="panel-captains" class="harbour-panel hidden" role="tabpanel" aria-labelledby="tab-captains">
+      <p class="management-note">Räddade kaptener är gäster. Fångar förs från skeppets brigg till basen. Baren gör det möjligt att övertala en fånge om ett lägre rekryteringspris.</p>
+      <div id="captain-list" class="management-list"></div>
+    </section>
+    <section id="panel-trade" class="harbour-panel hidden" role="tabpanel" aria-labelledby="tab-trade">
+      <div class="trade-heading">
+        <div><h3>Varor & last</h3><p id="trade-capacity" class="management-note"></p></div>
+        <label for="trade-quantity">Antal<select id="trade-quantity"><option value="1">1</option><option value="5" selected>5</option><option value="10">10</option></select></label>
+      </div>
+      <p id="trade-description" class="management-note"></p>
+      <p id="trade-port-treasury" class="management-note"></p>
+      <div id="trade-list" class="management-list"></div>
+      <p id="trade-status" class="management-note" role="status" aria-live="polite"></p>
+    </section>
+    <section id="panel-nations" class="harbour-panel hidden" role="tabpanel" aria-labelledby="tab-nations">
+      <p class="management-note">Ombud för nationerna erbjuder kaparbrev. Varje nation bedömer dig för sig; gott rykte öppnar dess stadshamn.</p>
+      <div id="nation-list" class="management-list"></div>
+    </section>
+    <section id="panel-rivals" class="harbour-panel hidden" role="tabpanel" aria-labelledby="tab-rivals">
+      <p class="management-note">Kaptener du mött i strid minns vad som hände. En överlevare kan återvända med en annan taktik. Historiken visar de senaste händelserna i din färd.</p>
+      <div id="rival-list" class="management-list"></div>
+    </section>
+    <div id="harbour-notice" role="status" aria-live="polite"></div>
+    <button id="depart" class="gold-button">Hissa segel →</button>
+    <div class="save-actions"><button id="harbour-pause">Pausa</button><button data-save>Spara</button><button data-menu>Byt färd</button><span data-save-status role="status"></span></div>
+    <div class="fineprint">Tiden går i hamnen, även under angrepp. Fort och försvarande skepp skyddar basen. Reparationer kostar dubloner och fortsätter tills du pausar. Din färd sparas i webbläsaren.</div>
+  </dialog>
+  <dialog id="pause-dialog" class="center-dialog">
+    <div class="eyebrow">LUGNT VATTEN</div><h2>Paus vid rodret.</h2>
+    <p>Spelet står stilla. Ta vid där du slutade.</p>
+    <p id="world-seed" class="fineprint"></p>
+    <button id="resume" class="gold-button">Fortsätt segla →</button>
+    <div class="save-actions"><button data-save>Spara</button><button data-menu>Byt färd</button><span data-save-status role="status"></span></div>
+    <button id="restart-paused" class="text-button">Avbryt färden · förlora lasten ombord</button>
+  </dialog>
+  <dialog id="result-dialog" class="center-dialog">
+    <div id="result-eyebrow" class="eyebrow">BYTET ÄR DITT</div><h2 id="result-title">Väl seglat, kapten.</h2>
+    <p id="result-body"></p><div id="result-stats"></div>
+    <button id="restart-result" class="gold-button">Tillbaka till basen →</button>
+  </dialog>
+  <div id="fatal" class="hidden" role="alert"><h2>Havet kunde inte startas.</h2><p id="fatal-detail">Prova en aktuell webbläsare med WebGL aktiverat.</p></div>
+  <noscript>Aktivera JavaScript i webbläsaren för att spela.</noscript>
+</body>
+</html>
